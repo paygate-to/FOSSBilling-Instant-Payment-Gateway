@@ -198,7 +198,7 @@ class Payment_Adapter_PayGateCard extends Payment_AdapterAbstract implements FOS
             $info = $this->pgRequest('GET', 'https://' . $this->pgApiHost() . '/crypto/' . self::NATIVE_PAYOUTS[$coin] . '/info.php');
             if ($info === null || !isset($info['prices']['USD']) || !is_numeric($info['prices']['USD'])) {
                 // Temporary: PayGate.to calls again and the next attempt prices it.
-                throw new Payment_Exception('Could not price :coin in USD to check the amount', [':coin' => $coin]);
+                throw new Payment_Exception('Could not price :coin in USD to check the amount', [':coin' => $coin], 503);
             }
             $received = (float) $params['value_coin'] * (float) $info['prices']['USD'];
         } else {
@@ -221,7 +221,7 @@ class Payment_Adapter_PayGateCard extends Payment_AdapterAbstract implements FOS
                 $conversion = $this->pgRequest('GET', 'https://' . $this->pgApiHost() . '/control/convert.php?value=' . rawurlencode(self::pgAmount($total)) . '&from=' . rawurlencode(strtolower($currency)));
                 if ($conversion === null || !isset($conversion['value_coin']) || !is_numeric($conversion['value_coin'])) {
                     // Temporary: PayGate.to calls again and the next attempt converts.
-                    throw new Payment_Exception('Could not convert :currency to USD to check the amount', [':currency' => $currency]);
+                    throw new Payment_Exception('Could not convert :currency to USD to check the amount', [':currency' => $currency], 503);
                 }
                 $expectedUsd = (float) $conversion['value_coin'];
             }
@@ -471,7 +471,7 @@ class Payment_Adapter_PayGateCard extends Payment_AdapterAbstract implements FOS
     {
         $name = 'paygate:invoice:' . $invoiceId;
         if ((int) $this->di['db']->getCell('SELECT GET_LOCK(:name, 20)', [':name' => $name]) !== 1) {
-            throw new Payment_Exception('Another PayGate.to callback for invoice #:id is being handled; this one will be retried', [':id' => $invoiceId]);
+            throw new Payment_Exception('Another PayGate.to callback for invoice #:id is being handled; this one will be retried', [':id' => $invoiceId], 503);
         }
         $this->pgLockName = $name;
     }
